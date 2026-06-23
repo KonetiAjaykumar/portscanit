@@ -1,0 +1,1535 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PortScanIt – Advanced Network Port Scanner</title>
+    <meta name="description" content="A premium cybersecurity dashboard for port scanning, service detection, and attack surface analytics.">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Outfit', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        cyber: {
+                            bg: '#080c14',
+                            card: 'rgba(15, 23, 42, 0.45)',
+                            border: 'rgba(6, 182, 212, 0.15)',
+                            borderHover: 'rgba(168, 85, 247, 0.4)',
+                            cyan: '#06b6d4',
+                            blue: '#3b82f6',
+                            purple: '#a855f7',
+                            gray: '#64748b',
+                            success: '#10b981',
+                            warning: '#f59e0b',
+                            danger: '#ef4444',
+                        }
+                    },
+                    boxShadow: {
+                        cyanGlow: '0 0 20px rgba(6, 182, 212, 0.25)',
+                        purpleGlow: '0 0 20px rgba(168, 85, 247, 0.25)',
+                        neonBtn: '0 0 15px rgba(6, 182, 212, 0.4)',
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0b0f19;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1e293b;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #06b6d4;
+        }
+
+        /* Glassmorphism card utilities */
+        .glass-card {
+            background: rgba(10, 15, 30, 0.65);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(6, 182, 212, 0.12);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .glass-card:hover {
+            border-color: rgba(168, 85, 247, 0.3);
+            box-shadow: 0 0 25px rgba(168, 85, 247, 0.08);
+        }
+
+        /* Radar scan animation */
+        @keyframes radar-sweep {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .radar-sweep-line {
+            transform-origin: 50% 50%;
+            animation: radar-sweep 4s linear infinite;
+        }
+        .radar-sweep-line-fast {
+            transform-origin: 50% 50%;
+            animation: radar-sweep 1.5s linear infinite;
+        }
+        .radar-sweep-line-deep {
+            transform-origin: 50% 50%;
+            animation: radar-sweep 8s linear infinite;
+        }
+
+        /* Pulsing dot */
+        @keyframes pulse-glow {
+            0%, 100% { opacity: 0.3; transform: scale(1); }
+            50% { opacity: 0.9; transform: scale(1.15); }
+        }
+        .pulse-glow-element {
+            animation: pulse-glow 2s infinite ease-in-out;
+        }
+
+        /* Terminal line typing simulation styling */
+        .term-cursor::after {
+            content: '▊';
+            animation: blink 1s step-end infinite;
+        }
+        @keyframes blink {
+            from, to { opacity: 1; }
+            50% { opacity: 0; }
+        }
+    </style>
+</head>
+<body class="bg-cyber-bg text-slate-100 font-sans min-h-screen relative overflow-x-hidden">
+
+    <!-- Particle Canvas Background -->
+    <canvas id="particleCanvas" class="absolute top-0 left-0 w-full h-full pointer-events-none z-0 opacity-40"></canvas>
+
+    <!-- Header Navigation -->
+    <header class="relative z-10 border-b border-slate-800 bg-[#080c14]/80 backdrop-blur-md sticky top-0">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <!-- Logo -->
+            <div class="flex items-center gap-3 cursor-pointer" onclick="showView('landing')">
+                <div class="relative flex items-center justify-center w-10 h-10 rounded-lg bg-gradient-to-br from-cyber-cyan via-cyber-blue to-cyber-purple p-[1px]">
+                    <div class="w-full h-full bg-cyber-bg rounded-lg flex items-center justify-center">
+                        <i data-lucide="shield-alert" class="w-5 h-5 text-cyber-cyan"></i>
+                    </div>
+                </div>
+                <div>
+                    <span class="text-lg font-extrabold tracking-wider bg-clip-text text-transparent bg-gradient-to-r from-white via-slate-100 to-cyber-cyan">PORTSCANIT</span>
+                    <span class="block text-[9px] text-cyber-purple tracking-widest font-bold -mt-1">ADVANCED NETWORK AUDIT</span>
+                </div>
+            </div>
+
+            <!-- Navigation Links -->
+            <nav class="hidden md:flex items-center gap-6 text-sm font-medium text-slate-400">
+                <button onclick="showView('landing')" class="hover:text-cyber-cyan transition-colors flex items-center gap-1.5"><i data-lucide="home" class="w-4 h-4"></i> Home</button>
+                <button onclick="showView('dashboard')" class="hover:text-cyber-cyan transition-colors flex items-center gap-1.5"><i data-lucide="layout-dashboard" class="w-4 h-4"></i> Dashboard</button>
+                <button onclick="showView('history')" class="hover:text-cyber-cyan transition-colors flex items-center gap-1.5"><i data-lucide="history" class="w-4 h-4"></i> Scan History</button>
+                <button onclick="showView('about')" class="hover:text-cyber-cyan transition-colors flex items-center gap-1.5"><i data-lucide="book-open" class="w-4 h-4"></i> Learn More</button>
+            </nav>
+
+            <!-- Actions (Theme Toggle, Auth Mock) -->
+            <div class="flex items-center gap-4">
+                <button id="themeToggle" onclick="toggleTheme()" class="p-2 rounded-lg border border-slate-800 text-slate-400 hover:text-cyber-cyan hover:border-cyber-cyan/30 transition-all">
+                    <i data-lucide="sun" class="w-4 h-4 block dark:hidden"></i>
+                    <i data-lucide="moon" class="w-4 h-4 hidden dark:block"></i>
+                </button>
+                <div class="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg border border-cyber-border bg-slate-900/40 text-xs font-mono text-cyber-cyan">
+                    <span class="w-1.5 h-1.5 rounded-full bg-cyber-success animate-pulse"></span>
+                    <span>SOC_OPERATOR_01</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Toast Notifications Container -->
+    <div id="toastContainer" class="fixed bottom-6 right-6 z-50 flex flex-col gap-3 max-w-sm w-full"></div>
+
+    <main class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+        <!-- ================= LANDING PAGE VIEW ================= -->
+        <section id="view-landing" class="space-y-12">
+            <!-- Hero Grid -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center pt-8">
+                <!-- Left Content -->
+                <div class="lg:col-span-7 space-y-6 text-center lg:text-left">
+                    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-cyber-cyan/30 bg-cyber-cyan/10 text-xs font-semibold text-cyber-cyan tracking-wider uppercase">
+                        <i data-lucide="shield-check" class="w-3.5 h-3.5"></i> Cyber Threat Vulnerability Analyzer v2.4
+                    </div>
+                    <h1 class="text-4xl sm:text-6xl font-extrabold tracking-tight leading-none">
+                        PortScanIt – Advanced <br class="hidden sm:inline">
+                        <span class="bg-clip-text text-transparent bg-gradient-to-r from-cyber-cyan via-cyber-blue to-cyber-purple">Network Port Scanner</span>
+                    </h1>
+                    <p class="text-lg text-slate-400 max-w-2xl mx-auto lg:mx-0">
+                        Discover Open Ports. Identify Running Services. Strengthen Network Boundaries. Secure your network infrastructure with commercial-grade auditing simulations.
+                    </p>
+                    <div class="flex flex-wrap items-center justify-center lg:justify-start gap-4">
+                        <button onclick="showView('dashboard')" class="px-6 py-3 rounded-lg bg-gradient-to-r from-cyber-cyan to-cyber-blue font-bold text-slate-900 shadow-neonBtn hover:shadow-[0_0_25px_rgba(6,182,212,0.6)] transition-all flex items-center gap-2">
+                            <i data-lucide="play" class="w-4 h-4 fill-slate-900"></i> Start Security Scan
+                        </button>
+                        <button onclick="showView('history')" class="px-6 py-3 rounded-lg border border-slate-800 bg-slate-900/60 font-semibold hover:border-cyber-purple/50 hover:text-cyber-purple transition-all flex items-center gap-2">
+                            <i data-lucide="folder-archive" class="w-4 h-4"></i> View Reports
+                        </button>
+                        <button onclick="showView('about')" class="px-6 py-3 rounded-lg border border-slate-800 bg-slate-900/30 text-slate-400 hover:text-slate-100 transition-all">
+                            Learn More &rarr;
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Right Visual (Shield Connection Graphic) -->
+                <div class="lg:col-span-5 flex justify-center relative">
+                    <div class="w-72 h-72 sm:w-96 sm:h-96 relative flex items-center justify-center">
+                        <!-- Orbit Rings -->
+                        <div class="absolute inset-0 rounded-full border border-cyber-cyan/10 animate-[spin_30s_linear_infinite]"></div>
+                        <div class="absolute inset-8 rounded-full border border-dashed border-cyber-purple/20 animate-[spin_20s_linear_infinite_reverse]"></div>
+                        <div class="absolute inset-16 rounded-full border border-cyber-blue/15 animate-[spin_10s_linear_infinite]"></div>
+                        
+                        <!-- Core Shield Card -->
+                        <div class="w-40 h-40 sm:w-48 sm:h-48 rounded-3xl bg-slate-900/80 border border-cyber-cyan/30 flex flex-col items-center justify-center shadow-cyanGlow relative z-10">
+                            <div class="absolute -top-3 -right-3 w-8 h-8 rounded-full bg-cyber-purple/20 border border-cyber-purple/50 flex items-center justify-center animate-bounce">
+                                <i data-lucide="activity" class="w-4 h-4 text-cyber-purple"></i>
+                            </div>
+                            <i data-lucide="shield" class="w-16 h-16 text-cyber-cyan pulse-glow-element"></i>
+                            <span class="text-xs font-mono font-bold text-slate-400 mt-2 uppercase tracking-widest">GUARD ACTIVE</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stats Bar -->
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+                <!-- Stat Card 1 -->
+                <div class="glass-card rounded-2xl p-6 relative overflow-hidden group">
+                    <div class="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-cyber-cyan/10 to-transparent rounded-full -mr-8 -mt-8 transition-transform group-hover:scale-125"></div>
+                    <p class="text-xs font-medium text-slate-500 uppercase tracking-wider">Total Scans Executed</p>
+                    <p class="text-3xl font-bold text-slate-100 mt-2 font-mono" id="stat-total-scans">1,842</p>
+                    <div class="flex items-center gap-1 text-[11px] text-cyber-success mt-2">
+                        <i data-lucide="trending-up" class="w-3 h-3"></i>
+                        <span>+14.2% this week</span>
+                    </div>
+                </div>
+                <!-- Stat Card 2 -->
+                <div class="glass-card rounded-2xl p-6 relative overflow-hidden group">
+                    <div class="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-cyber-purple/10 to-transparent rounded-full -mr-8 -mt-8 transition-transform group-hover:scale-125"></div>
+                    <p class="text-xs font-medium text-slate-500 uppercase tracking-wider">Open Ports Discovered</p>
+                    <p class="text-3xl font-bold text-slate-100 mt-2 font-mono" id="stat-open-ports">4,812</p>
+                    <div class="flex items-center gap-1 text-[11px] text-cyber-cyan mt-2">
+                        <i data-lucide="activity" class="w-3 h-3"></i>
+                        <span>Average 2.6 per host</span>
+                    </div>
+                </div>
+                <!-- Stat Card 3 -->
+                <div class="glass-card rounded-2xl p-6 relative overflow-hidden group">
+                    <div class="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-cyber-blue/10 to-transparent rounded-full -mr-8 -mt-8 transition-transform group-hover:scale-125"></div>
+                    <p class="text-xs font-medium text-slate-500 uppercase tracking-wider">Services Identified</p>
+                    <p class="text-3xl font-bold text-slate-100 mt-2 font-mono" id="stat-services">32</p>
+                    <div class="flex items-center gap-1 text-[11px] text-cyber-purple mt-2">
+                        <i data-lucide="fingerprint" class="w-3 h-3"></i>
+                        <span>HTTP, SSH, MySQL dominate</span>
+                    </div>
+                </div>
+                <!-- Stat Card 4 -->
+                <div class="glass-card rounded-2xl p-6 relative overflow-hidden group">
+                    <div class="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-cyber-success/10 to-transparent rounded-full -mr-8 -mt-8 transition-transform group-hover:scale-125"></div>
+                    <p class="text-xs font-medium text-slate-500 uppercase tracking-wider">Scan Success Rate</p>
+                    <p class="text-3xl font-bold text-slate-100 mt-2 font-mono" id="stat-success-rate">99.87%</p>
+                    <div class="flex items-center gap-1 text-[11px] text-cyber-success mt-2">
+                        <i data-lucide="check-circle-2" class="w-3 h-3"></i>
+                        <span>Zero timeout failure rate</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Scans / Live Feeds Section -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                <!-- Recent Scan Activity -->
+                <div class="lg:col-span-8 glass-card rounded-2xl p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="font-bold text-lg flex items-center gap-2"><i data-lucide="history" class="w-4 h-4 text-cyber-cyan"></i> Recent Diagnostics</h3>
+                        <button onclick="showView('history')" class="text-xs text-cyber-purple font-semibold hover:underline">View Database Database &rarr;</button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm">
+                            <thead>
+                                <tr class="border-b border-slate-800 text-slate-400 font-mono text-xs">
+                                    <th class="py-3 px-4">Target Host</th>
+                                    <th class="py-3 px-4">Timestamp</th>
+                                    <th class="py-3 px-4">Audit Type</th>
+                                    <th class="py-3 px-4">Open Ports</th>
+                                    <th class="py-3 px-4">Risk Rating</th>
+                                    <th class="py-3 px-4 text-right">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="landingRecentScans" class="divide-y divide-slate-800/50">
+                                <!-- Populated dynamically by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Threat Feed & Info Panel -->
+                <div class="lg:col-span-4 glass-card rounded-2xl p-6 flex flex-col justify-between">
+                    <div class="space-y-4">
+                        <h3 class="font-bold text-lg flex items-center gap-2"><i data-lucide="globe-2" class="w-4 h-4 text-cyber-purple"></i> Vulnerability intelligence</h3>
+                        <p class="text-xs text-slate-400">
+                            PortScanIt scans identify exposed service banners to cross-reference known CVE vulnerability indexes. Keeping service configurations anonymous minimizes attack vector profiles.
+                        </p>
+                        
+                        <div class="p-3 bg-slate-950/60 rounded-xl border border-slate-800/80 space-y-2">
+                            <div class="flex justify-between items-center text-xs">
+                                <span class="font-bold text-cyber-danger">PORT RISK ALERTS</span>
+                                <span class="px-1.5 py-0.5 rounded bg-cyber-danger/10 text-[9px] text-cyber-danger font-mono font-bold animate-pulse">CRITICAL</span>
+                            </div>
+                            <p class="text-[11px] text-slate-300">
+                                Unencrypted services like FTP (21) and Telnet (23) transmit credentials in cleartext. Upgrade to SFTP and SSH immediately.
+                            </p>
+                        </div>
+                    </div>
+                    <div class="border-t border-slate-800/80 mt-4 pt-4 flex items-center justify-between text-xs text-slate-500">
+                        <span>Threat Database: Active</span>
+                        <span class="font-mono">Sync: 1m ago</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= SCANNER DASHBOARD VIEW ================= -->
+        <section id="view-dashboard" class="hidden space-y-8">
+            <!-- Top Controls Form -->
+            <div class="glass-card rounded-2xl p-6">
+                <h2 class="text-xl font-bold mb-6 flex items-center gap-2"><i data-lucide="terminal" class="w-5 h-5 text-cyber-cyan"></i> Configure Network Security Scan</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
+                    <!-- Target Address -->
+                    <div class="md:col-span-4 space-y-2">
+                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider">Target IP Address or Domain</label>
+                        <div class="relative">
+                            <input id="targetInput" type="text" placeholder="e.g. 192.168.1.1 or scanme.org" class="w-full bg-slate-950/80 border border-slate-800 hover:border-cyber-cyan/40 focus:border-cyber-cyan focus:outline-none focus:ring-1 focus:ring-cyber-cyan/35 rounded-xl py-3 pl-10 pr-4 text-slate-100 font-mono text-sm transition-all shadow-inner">
+                            <i data-lucide="search-code" class="absolute left-3.5 top-3.5 w-4.5 h-4.5 text-slate-500"></i>
+                        </div>
+                    </div>
+
+                    <!-- Port Selection -->
+                    <div class="md:col-span-3 space-y-2">
+                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider">Port Range</label>
+                        <select id="portRangeSelect" onchange="handlePortRangeChange()" class="w-full bg-slate-950/80 border border-slate-800 hover:border-cyber-cyan/40 focus:border-cyber-cyan focus:outline-none rounded-xl py-3 px-4 text-slate-100 font-mono text-sm transition-all">
+                            <option value="common">Common Ports (1-1024)</option>
+                            <option value="full">Full Scan (1-65535)</option>
+                            <option value="custom">Custom Range...</option>
+                        </select>
+                        <div id="customPortRangeWrapper" class="hidden mt-2">
+                            <input id="customPortInput" type="text" placeholder="e.g. 80,443,8080-8090" class="w-full bg-slate-950/80 border border-slate-800 focus:border-cyber-cyan focus:outline-none rounded-xl py-2 px-3 text-slate-100 font-mono text-xs">
+                        </div>
+                    </div>
+
+                    <!-- Scan Speed -->
+                    <div class="md:col-span-2 space-y-2">
+                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider">Scan Profile (Speed)</label>
+                        <select id="scanSpeedSelect" class="w-full bg-slate-950/80 border border-slate-800 focus:border-cyber-cyan focus:outline-none rounded-xl py-3 px-4 text-slate-100 text-sm">
+                            <option value="normal">Normal (Stealth)</option>
+                            <option value="fast">Fast (Aggressive)</option>
+                            <option value="deep">Deep Scan (Thorough)</option>
+                        </select>
+                    </div>
+
+                    <!-- Threads -->
+                    <div class="md:col-span-2 space-y-2">
+                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider">Concurrency Threads</label>
+                        <select id="threadCountSelect" class="w-full bg-slate-950/80 border border-slate-800 focus:border-cyber-cyan focus:outline-none rounded-xl py-3 px-4 text-slate-100 font-mono text-sm">
+                            <option value="10">10 Threads</option>
+                            <option value="50">50 Threads</option>
+                            <option value="100">100 Threads</option>
+                        </select>
+                    </div>
+
+                    <!-- Launch Button -->
+                    <div class="md:col-span-1 flex items-end">
+                        <button id="scanBtn" onclick="toggleScan()" class="w-full py-3 rounded-xl bg-gradient-to-r from-cyber-cyan to-cyber-blue hover:from-cyber-cyan hover:to-cyber-purple text-slate-900 font-bold transition-all flex items-center justify-center gap-2 shadow-neonBtn">
+                            <i data-lucide="play" class="w-4 h-4 fill-slate-900" id="scanBtnIcon"></i>
+                            <span id="scanBtnText">Scan</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Active Scan Monitor Panel -->
+            <div id="activeScanPanel" class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
+                <!-- Left: Animation Radar & Circular Indicators -->
+                <div class="lg:col-span-4 glass-card rounded-2xl p-6 flex flex-col justify-between items-center text-center">
+                    <h3 class="text-sm font-bold text-slate-400 uppercase tracking-wider self-start">Diagnostic Monitor</h3>
+                    
+                    <!-- Simulated Radar -->
+                    <div class="relative w-56 h-56 my-6 flex items-center justify-center bg-slate-950/40 rounded-full border border-cyber-cyan/15 overflow-hidden">
+                        <!-- Radar Sweep Line -->
+                        <div id="radarSweep" class="absolute inset-0 rounded-full radar-sweep-line pointer-events-none opacity-40 bg-[conic-gradient(from_0deg,transparent_60%,#06b6d4_100%)]"></div>
+                        
+                        <!-- Radar Circles -->
+                        <div class="absolute w-44 h-44 rounded-full border border-cyber-cyan/5"></div>
+                        <div class="absolute w-32 h-32 rounded-full border border-cyber-cyan/5"></div>
+                        <div class="absolute w-20 h-20 rounded-full border border-cyber-cyan/5"></div>
+                        <div class="absolute w-8 h-8 rounded-full border border-cyber-cyan/10 bg-slate-900/60"></div>
+                        
+                        <!-- Pulse Target Indicator -->
+                        <div id="radarPulseDot" class="absolute w-2.5 h-2.5 bg-cyber-purple rounded-full pulse-glow-element hidden" style="top: 35%; left: 60%;"></div>
+                        <i data-lucide="shield" class="w-8 h-8 text-cyber-cyan relative z-10 pulse-glow-element"></i>
+                    </div>
+
+                    <!-- Scan Metrics Status Row -->
+                    <div class="w-full grid grid-cols-3 gap-2 border-t border-slate-800/80 pt-4 text-xs font-mono">
+                        <div>
+                            <span class="block text-[10px] text-slate-500 uppercase">State</span>
+                            <span id="scanStateBadge" class="text-slate-400 font-bold">IDLE</span>
+                        </div>
+                        <div>
+                            <span class="block text-[10px] text-slate-500 uppercase">Time</span>
+                            <span id="scanDurationTimer" class="text-slate-400 font-bold">0.00s</span>
+                        </div>
+                        <div>
+                            <span class="block text-[10px] text-slate-500 uppercase">Progress</span>
+                            <span id="scanProgressText" class="text-slate-400 font-bold">0%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right: Live Logs Console & Progress Bars -->
+                <div class="lg:col-span-8 glass-card rounded-2xl p-6 flex flex-col justify-between space-y-6">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <span class="relative flex h-2 w-2">
+                              <span id="consolePulseGlow" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyber-cyan opacity-75"></span>
+                              <span id="consolePulseCore" class="relative inline-flex rounded-full h-2 w-2 bg-cyber-cyan"></span>
+                            </span>
+                            <h3 class="font-bold text-sm text-slate-300 uppercase tracking-wider">Live Diagnostics Console</h3>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="clearConsole()" class="px-2.5 py-1 rounded bg-slate-900 text-[10px] text-slate-400 border border-slate-800 hover:text-cyber-cyan hover:border-cyber-cyan/30 transition-all font-mono">CLEAR</button>
+                        </div>
+                    </div>
+
+                    <!-- Console Box -->
+                    <div id="liveTerminal" class="h-48 overflow-y-auto bg-slate-950/85 border border-slate-900 rounded-xl p-4 font-mono text-xs text-emerald-400 space-y-1.5 shadow-inner">
+                        <div class="text-slate-500">[SYSTEM] Awaiting target deployment commands...</div>
+                    </div>
+
+                    <!-- Progress Stats -->
+                    <div class="space-y-2">
+                        <div class="flex justify-between text-xs font-mono text-slate-400">
+                            <span>Diagnostic Completeness</span>
+                            <span id="linearProgressText" class="font-bold text-cyber-cyan">0%</span>
+                        </div>
+                        <div class="w-full bg-slate-900 rounded-full h-2.5 border border-slate-800 overflow-hidden">
+                            <div id="linearProgressBar" class="bg-gradient-to-r from-cyber-cyan to-cyber-purple h-full rounded-full transition-all duration-300 shadow-cyanGlow" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Passive OSINT Threat Intelligence (Shodan Simulator) -->
+            <div id="threatIntelCard" class="hidden glass-card rounded-2xl p-6 border-l-4 border-l-cyber-purple shadow-[0_0_20px_rgba(168,85,247,0.05)]">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-slate-800/80 pb-4 mb-4 gap-4">
+                    <div>
+                        <h3 class="text-lg font-bold flex items-center gap-2 text-cyber-purple"><i data-lucide="eye" class="w-5 h-5"></i> Passive Threat Intelligence (Shodan Repository Feed)</h3>
+                        <p class="text-xs text-slate-400">Passive historical records cached by globally distributed crawlers. Explores vulnerabilities without contacting the target.</p>
+                    </div>
+                    <div class="flex gap-3">
+                        <span class="px-2 py-1 rounded bg-cyber-purple/10 border border-cyber-purple/30 text-[10px] text-cyber-purple font-mono font-bold uppercase" id="threatIntelIsp">ISP: Cloudflare</span>
+                        <span class="px-2 py-1 rounded bg-slate-900 border border-slate-800 text-[10px] text-slate-400 font-mono" id="threatIntelCrawl">Last Scan: 2026-06-21</span>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    <div>
+                        <span class="block text-[10px] text-slate-500 uppercase tracking-widest font-mono">Organization</span>
+                        <span class="text-sm font-semibold text-slate-200 mt-1 block" id="intelOrg">Cloudflare, Inc.</span>
+                    </div>
+                    <div>
+                        <span class="block text-[10px] text-slate-500 uppercase tracking-widest font-mono">Detected Operating System</span>
+                        <span class="text-sm font-semibold text-slate-200 mt-1 block" id="intelOs">Linux 4.x / 5.x</span>
+                    </div>
+                    <div>
+                        <span class="block text-[10px] text-slate-500 uppercase tracking-widest font-mono">Vulnerability Exposure Index</span>
+                        <span class="text-xs font-semibold px-2 py-0.5 rounded bg-cyber-warning/10 text-cyber-warning border border-cyber-warning/20 mt-1.5 inline-block" id="intelRisk">Medium Exposure Risk</span>
+                    </div>
+                    <div>
+                        <span class="block text-[10px] text-slate-500 uppercase tracking-widest font-mono">Associated Hostnames</span>
+                        <span class="text-xs font-mono text-slate-400 mt-1 block overflow-hidden text-ellipsis whitespace-nowrap" id="intelHostnames">dns.cloudflare.com</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Results Section (Visible only when scanning or finished) -->
+            <div id="resultsWrapper" class="hidden grid grid-cols-1 lg:grid-cols-12 gap-8">
+                <!-- Left: Interactive Ports Table -->
+                <div class="lg:col-span-8 space-y-4">
+                    <div class="glass-card rounded-2xl p-6">
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                            <div class="flex items-center gap-2">
+                                <h3 class="font-bold text-lg">Diagnostics Findings</h3>
+                                <span id="openPortsCounter" class="px-2 py-0.5 rounded-full bg-cyber-success/15 border border-cyber-success/30 text-[10px] text-cyber-success font-bold font-mono">0 Open Ports</span>
+                            </div>
+                            <!-- Filters -->
+                            <div class="flex gap-2 w-full sm:w-auto">
+                                <input type="text" id="tableFilterInput" onkeyup="filterResultsTable()" placeholder="Search port or service..." class="w-full sm:w-48 bg-slate-950/60 border border-slate-800 focus:border-cyber-cyan focus:outline-none rounded-lg px-3 py-1.5 text-xs font-mono text-slate-200">
+                                <select id="tableStateFilter" onchange="filterResultsTable()" class="bg-slate-950/60 border border-slate-800 focus:border-cyber-cyan focus:outline-none rounded-lg px-2 py-1.5 text-xs text-slate-400">
+                                    <option value="all">All States</option>
+                                    <option value="open">Open Only</option>
+                                    <option value="filtered">Filtered Only</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="overflow-x-auto max-h-[350px]">
+                            <table class="w-full text-left text-sm" id="resultsTable">
+                                <thead>
+                                    <tr class="border-b border-slate-800 text-slate-400 font-mono text-xs sticky top-0 bg-[#0a0f1e] z-10">
+                                        <th class="py-2.5 px-4">Port Number</th>
+                                        <th class="py-2.5 px-4">Protocol</th>
+                                        <th class="py-2.5 px-4">State</th>
+                                        <th class="py-2.5 px-4">Service Identified</th>
+                                        <th class="py-2.5 px-4">Banner Grabbed</th>
+                                        <th class="py-2.5 px-4">Risk Severity</th>
+                                        <th class="py-2.5 px-4 text-right">Utility</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-800/40 text-slate-300 font-mono" id="resultsTableBody">
+                                    <!-- Populated dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right: Real-time Charts & Threat Levels -->
+                <div class="lg:col-span-4 space-y-8">
+                    <!-- Chart Card 1: Pie -->
+                    <div class="glass-card rounded-2xl p-6 flex flex-col justify-between h-[250px]">
+                        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Audit Distribution</h3>
+                        <div class="relative flex-grow flex items-center justify-center">
+                            <canvas id="portDistributionChart" class="max-h-[160px]"></canvas>
+                        </div>
+                    </div>
+                    
+                    <!-- Chart Card 2: Risk Meter Gauge -->
+                    <div class="glass-card rounded-2xl p-6 flex flex-col justify-between h-[220px]">
+                        <div class="flex justify-between items-center mb-2">
+                            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Target Threat Index</h3>
+                            <span id="threatScoreBadge" class="text-xs font-bold text-cyber-cyan font-mono">0/100</span>
+                        </div>
+                        <div class="relative flex-grow flex items-center justify-center">
+                            <canvas id="threatScoreChart" class="max-h-[130px]"></canvas>
+                            <div class="absolute bottom-6 flex flex-col items-center">
+                                <span class="text-[10px] text-slate-500 uppercase tracking-widest font-bold">RATING</span>
+                                <span id="threatRatingLabel" class="text-xs font-bold text-slate-300 font-mono uppercase">SECURE</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Report Downloader & Recommendations -->
+            <div id="reportActionsWrapper" class="hidden glass-card rounded-2xl p-6 bg-slate-900/40 border border-cyber-border flex flex-col md:flex-row justify-between items-center gap-6">
+                <div class="space-y-1 text-center md:text-left">
+                    <h3 class="font-bold text-base flex items-center justify-center md:justify-start gap-2"><i data-lucide="file-check-2" class="w-5 h-5 text-cyber-success"></i> Security Audit Complete</h3>
+                    <p class="text-xs text-slate-400">Diagnostic details are archived. Select export format for reports.</p>
+                </div>
+                <div class="flex flex-wrap gap-3">
+                    <button onclick="downloadReport('json')" class="px-4 py-2 rounded-lg bg-slate-950 text-slate-200 border border-slate-800 hover:border-cyber-purple/50 text-xs font-semibold font-mono flex items-center gap-2 transition-all">
+                        <i data-lucide="file-json" class="w-3.5 h-3.5 text-cyber-purple"></i> EXPORT_JSON
+                    </button>
+                    <button onclick="downloadReport('csv')" class="px-4 py-2 rounded-lg bg-slate-950 text-slate-200 border border-slate-800 hover:border-cyber-cyan/50 text-xs font-semibold font-mono flex items-center gap-2 transition-all">
+                        <i data-lucide="table" class="w-3.5 h-3.5 text-cyber-cyan"></i> EXPORT_CSV
+                    </button>
+                    <button onclick="triggerPrintPdf()" class="px-4 py-2 rounded-lg bg-gradient-to-r from-cyber-cyan to-cyber-blue hover:shadow-neonBtn text-slate-900 text-xs font-bold flex items-center gap-2 transition-all">
+                        <i data-lucide="download" class="w-3.5 h-3.5 fill-slate-900"></i> DOWNLOAD PDF REPORT
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= SCAN HISTORY VIEW ================= -->
+        <section id="view-history" class="hidden space-y-6">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h2 class="text-2xl font-bold flex items-center gap-2"><i data-lucide="archive" class="w-6 h-6 text-cyber-purple"></i> Diagnostic Scan Repository</h2>
+                    <p class="text-xs text-slate-400 mt-1">Audit log records stored locally in SQLite simulator. Archive capacity: Unlimited.</p>
+                </div>
+                <button onclick="clearScanHistory()" class="px-4 py-2 rounded-lg bg-cyber-danger/10 border border-cyber-danger/35 hover:bg-cyber-danger/20 text-cyber-danger text-xs font-semibold transition-all">
+                    Purge Database Archive
+                </button>
+            </div>
+
+            <!-- Search and List -->
+            <div class="glass-card rounded-2xl p-6">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm">
+                        <thead>
+                            <tr class="border-b border-slate-800 text-slate-400 font-mono text-xs">
+                                <th class="py-3 px-4">Diagnostic ID</th>
+                                <th class="py-3 px-4">Target Host</th>
+                                <th class="py-3 px-4">Scan Date</th>
+                                <th class="py-3 px-4">Total Checked</th>
+                                <th class="py-3 px-4">Discovered Ports</th>
+                                <th class="py-3 px-4">Threat Level</th>
+                                <th class="py-3 px-4 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="scanHistoryList" class="divide-y divide-slate-800/40 font-mono">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= LEARN MORE / ABOUT VIEW ================= -->
+        <section id="view-about" class="hidden space-y-8 max-w-4xl mx-auto">
+            <div class="text-center space-y-3">
+                <h2 class="text-3xl font-extrabold text-white">Security Intelligence Center</h2>
+                <p class="text-slate-400 max-w-lg mx-auto">Understand the mechanics of port scanning, service profiling, and active vulnerability enumeration.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="glass-card rounded-2xl p-6 space-y-4">
+                    <h3 class="font-bold text-lg text-cyber-cyan flex items-center gap-2"><i data-lucide="shield-question" class="w-5 h-5"></i> Port Scans Explained</h3>
+                    <p class="text-sm text-slate-400 leading-relaxed">
+                        A port scanner attempts to establish networking sockets with a range of ports on a destination target. 
+                        Common methodologies include:
+                    </p>
+                    <ul class="text-xs text-slate-400 space-y-2 pl-4 list-disc">
+                        <li><strong class="text-slate-200">TCP Connect Scan:</strong> The scanner performs a complete 3-way handshake (SYN, SYN-ACK, ACK). If the connection succeeds, the port is marked open.</li>
+                        <li><strong class="text-slate-200">SYN Stealth Scan:</strong> Sends a SYN packet and awaits a SYN-ACK. If received, it responds with a RST instead of ACK to avoid establishing a full connection, which keeps logs quiet on older systems.</li>
+                        <li><strong class="text-slate-200">Banner Grabbing:</strong> Establishing connection and reading incoming headers immediately sent by services to identify exact applications and operating systems.</li>
+                    </ul>
+                </div>
+
+                <div class="glass-card rounded-2xl p-6 space-y-4">
+                    <h3 class="font-bold text-lg text-cyber-purple flex items-center gap-2"><i data-lucide="shield-alert" class="w-5 h-5"></i> Mitigating Network Scanning</h3>
+                    <p class="text-sm text-slate-400 leading-relaxed">
+                        Administrators must proactively protect systems against unauthorized port scanning mapping attempts:
+                    </p>
+                    <ul class="text-xs text-slate-400 space-y-2 pl-4 list-disc">
+                        <li><strong class="text-slate-200">Firewalls & Access Lists:</strong> Restrict public accessibility of services like SSH, databases, or administration tools to authorized IPs only.</li>
+                        <li><strong class="text-slate-200">Rate Limiting:</strong> Use firewall rules (e.g., iptables, nftables) or intrusion systems to detect rapid connection attempts and block offending IPs.</li>
+                        <li><strong class="text-slate-200">Port Knocking:</strong> Hide administration ports behind a sequence of connections to predefined closed ports. The port opens only when the correct knocking pattern is detected.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- FAQ/Quick Reference Table -->
+            <div class="glass-card rounded-2xl p-6">
+                <h3 class="font-bold text-base text-white mb-4">Standard Port Directory</h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs font-mono">
+                        <thead>
+                            <tr class="border-b border-slate-800 text-slate-500">
+                                <th class="py-2">Port</th>
+                                <th class="py-2">Service</th>
+                                <th class="py-2">Protocol</th>
+                                <th class="py-2">Description / Risk Profile</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-800/40 text-slate-300">
+                            <tr>
+                                <td class="py-2 text-cyber-cyan font-bold">21</td>
+                                <td class="py-2">FTP</td>
+                                <td class="py-2">TCP</td>
+                                <td class="py-2 text-slate-400">File Transfer Protocol. Credentials/data sent unencrypted. High Risk.</td>
+                            </tr>
+                            <tr>
+                                <td class="py-2 text-cyber-cyan font-bold">22</td>
+                                <td class="py-2">SSH</td>
+                                <td class="py-2">TCP</td>
+                                <td class="py-2 text-slate-400">Secure Shell. Encrypted remote login. Moderate Risk (brute-force).</td>
+                            </tr>
+                            <tr>
+                                <td class="py-2 text-cyber-cyan font-bold">80</td>
+                                <td class="py-2">HTTP</td>
+                                <td class="py-2">TCP</td>
+                                <td class="py-2 text-slate-400">Hypertext Transfer Protocol. Standard unencrypted web traffic. Low Risk.</td>
+                            </tr>
+                            <tr>
+                                <td class="py-2 text-cyber-cyan font-bold">443</td>
+                                <td class="py-2">HTTPS</td>
+                                <td class="py-2">TCP</td>
+                                <td class="py-2 text-slate-400">Hypertext Transfer Protocol Secure. TLS-encrypted web traffic. Low Risk.</td>
+                            </tr>
+                            <tr>
+                                <td class="py-2 text-cyber-cyan font-bold">3306</td>
+                                <td class="py-2">MySQL</td>
+                                <td class="py-2">TCP</td>
+                                <td class="py-2 text-slate-400">Relational Database. Keep restricted to localhost/internal network. High Risk.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="relative z-10 border-t border-slate-900 bg-[#080c14] py-8 text-center text-xs text-slate-600">
+        <div class="max-w-7xl mx-auto px-4 space-y-2">
+            <p>&copy; 2026 PortScanIt – Advanced Security Operations Center Simulator.</p>
+            <p>Designed for educational and visual portfolio demonstration purposes only. No external networks are affected.</p>
+        </div>
+    </footer>
+
+    <!-- ================= JAVASCRIPT SCANNER LOGIC ================= -->
+    <script>
+        // Initialize Lucide Icons
+        lucide.createIcons();
+
+        // View Router
+        function showView(viewId) {
+            const views = ['landing', 'dashboard', 'history', 'about'];
+            views.forEach(v => {
+                document.getElementById(`view-${v}`).classList.add('hidden');
+            });
+            document.getElementById(`view-${viewId}`).classList.remove('hidden');
+            window.scrollTo({top: 0, behavior: 'smooth'});
+        }
+
+        // Particle Canvas Background
+        const canvas = document.getElementById('particleCanvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+        const maxParticles = 60;
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        class Particle {
+            constructor() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.vx = (Math.random() - 0.5) * 0.4;
+                this.vy = (Math.random() - 0.5) * 0.4;
+                this.radius = Math.random() * 2 + 1;
+            }
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+
+                if (this.x < 0 || this.x > canvas.width) this.vx = -this.vx;
+                if (this.y < 0 || this.y > canvas.height) this.vy = -this.vy;
+            }
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(6, 182, 212, 0.4)';
+                ctx.fill();
+            }
+        }
+
+        for (let i = 0; i < maxParticles; i++) {
+            particles.push(new Particle());
+        }
+
+        function animateParticles() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(p => {
+                p.update();
+                p.draw();
+            });
+
+            // Draw connection lines
+            ctx.strokeStyle = 'rgba(6, 182, 212, 0.05)';
+            ctx.lineWidth = 0.8;
+            for (let i = 0; i < particles.length; i++) {
+                for (let j = i + 1; j < particles.length; j++) {
+                    const dist = Math.hypot(particles[i].x - particles[j].x, particles[i].y - particles[j].y);
+                    if (dist < 100) {
+                        ctx.beginPath();
+                        ctx.moveTo(particles[i].x, particles[i].y);
+                        ctx.lineTo(particles[j].x, particles[j].y);
+                        ctx.stroke();
+                    }
+                }
+            }
+            requestAnimationFrame(animateParticles);
+        }
+        animateParticles();
+
+        // Mock Database of Port Services
+        const portDirectory = {
+            21: { service: 'FTP', banner: 'vsftpd 3.0.3', risk: 'High', state: 'Open' },
+            22: { service: 'SSH', banner: 'OpenSSH 8.2p1 Ubuntu-4ubuntu0.5', risk: 'Medium', state: 'Open' },
+            23: { service: 'Telnet', banner: 'Linux telnetd daemon', risk: 'Critical', state: 'Open' },
+            25: { service: 'SMTP', banner: 'Postfix smtpd', risk: 'Medium', state: 'Open' },
+            53: { service: 'DNS', banner: 'BIND 9.16.1', risk: 'Low', state: 'Open' },
+            80: { service: 'HTTP', banner: 'Apache/2.4.41 (Ubuntu)', risk: 'Low', state: 'Open' },
+            110: { service: 'POP3', banner: 'Dovecot pop3d', risk: 'Low', state: 'Open' },
+            143: { service: 'IMAP', banner: 'Dovecot imapd', risk: 'Low', state: 'Open' },
+            443: { service: 'HTTPS', banner: 'nginx/1.18.0', risk: 'Low', state: 'Open' },
+            445: { service: 'SMB/Microsoft-DS', banner: 'Windows Server 2019 SMBv3', risk: 'High', state: 'Open' },
+            3306: { service: 'MySQL', banner: 'MySQL Community Server 8.0.25', risk: 'High', state: 'Open' },
+            3389: { service: 'RDP', banner: 'MS-RDP (CredSSP Active)', risk: 'High', state: 'Open' },
+            5432: { service: 'PostgreSQL', banner: 'PostgreSQL 13.3', risk: 'Medium', state: 'Open' },
+            6379: { service: 'Redis', banner: 'Redis key-value store v6.2.1 (Unauthenticated)', risk: 'Critical', state: 'Open' },
+            8080: { service: 'HTTP-Alt', banner: 'Tomcat/9.0.37', risk: 'Medium', state: 'Open' },
+            27017: { service: 'MongoDB', banner: 'MongoDB v4.4.6', risk: 'High', state: 'Open' }
+        };
+
+        // Scan State Variables
+        let scanning = false;
+        let paused = false;
+        let progress = 0;
+        let duration = 0.00;
+        let scanInterval = null;
+        let timerInterval = null;
+        let currentTarget = '';
+        let currentResults = [];
+        let portChart = null;
+        let gaugeChart = null;
+
+        // Diagnostic History Database (Simulated SQLite)
+        let localScanHistory = [
+            { id: 'S-8419', target: '10.0.0.15', date: '2026-06-22 14:32', checked: 1024, open: 3, risk: 'High', results: [
+                { port: 22, protocol: 'TCP', state: 'Open', service: 'SSH', banner: 'OpenSSH 8.2p1', risk: 'Medium' },
+                { port: 80, protocol: 'TCP', state: 'Open', service: 'HTTP', banner: 'Apache/2.4.41', risk: 'Low' },
+                { port: 3306, protocol: 'TCP', state: 'Open', service: 'MySQL', banner: 'MySQL Server 8.0', risk: 'High' }
+            ]},
+            { id: 'S-8418', target: 'dev.company.corp', date: '2026-06-22 10:15', checked: 1024, open: 2, risk: 'Medium', results: [
+                { port: 22, protocol: 'TCP', state: 'Open', service: 'SSH', banner: 'OpenSSH 8.2p1', risk: 'Medium' },
+                { port: 443, protocol: 'TCP', state: 'Open', service: 'HTTPS', banner: 'nginx/1.18.0', risk: 'Low' }
+            ]},
+            { id: 'S-8417', target: '198.51.100.8', date: '2026-06-21 18:40', checked: 1024, open: 4, risk: 'Critical', results: [
+                { port: 21, protocol: 'TCP', state: 'Open', service: 'FTP', banner: 'vsftpd 3.0.3', risk: 'High' },
+                { port: 22, protocol: 'TCP', state: 'Open', service: 'SSH', banner: 'OpenSSH 7.9', risk: 'Medium' },
+                { port: 80, protocol: 'TCP', state: 'Open', service: 'HTTP', banner: 'Apache/2.4.18', risk: 'Low' },
+                { port: 23, protocol: 'TCP', state: 'Open', service: 'Telnet', banner: 'netkit-telnetd', risk: 'Critical' }
+            ]}
+        ];
+
+        // Initialization
+        window.onload = function() {
+            initCharts();
+            renderLandingPage();
+            renderScanHistory();
+        };
+
+        // Theme Toggle (Dark/Light)
+        function toggleTheme() {
+            const html = document.documentElement;
+            if (html.classList.contains('dark')) {
+                html.classList.remove('dark');
+                localStorage.setItem('theme', 'light');
+            } else {
+                html.classList.add('dark');
+                localStorage.setItem('theme', 'dark');
+            }
+        }
+
+        // Render landing elements
+        function renderLandingPage() {
+            document.getElementById('stat-total-scans').innerText = localScanHistory.length + 1840;
+            const totalOpen = localScanHistory.reduce((acc, curr) => acc + curr.open, 0) + 4800;
+            document.getElementById('stat-open-ports').innerText = totalOpen;
+
+            const tbody = document.getElementById('landingRecentScans');
+            tbody.innerHTML = '';
+            
+            localScanHistory.slice(0, 3).forEach(scan => {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-900/30 transition-colors';
+                
+                let riskClass = 'text-cyber-gray';
+                if (scan.risk === 'Critical') riskClass = 'text-cyber-danger font-bold';
+                else if (scan.risk === 'High') riskClass = 'text-cyber-warning font-bold';
+                else if (scan.risk === 'Medium') riskClass = 'text-cyber-blue font-bold';
+
+                tr.innerHTML = `
+                    <td class="py-3 px-4 font-bold text-slate-200">${scan.target}</td>
+                    <td class="py-3 px-4 text-xs text-slate-400">${scan.date}</td>
+                    <td class="py-3 px-4 text-xs font-semibold text-slate-400">TCP Connect</td>
+                    <td class="py-3 px-4 font-mono font-bold text-cyber-cyan">${scan.open} Ports</td>
+                    <td class="py-3 px-4 text-xs"><span class="${riskClass}">${scan.risk}</span></td>
+                    <td class="py-3 px-4 text-right">
+                        <button onclick="loadHistoricScan('${scan.id}')" class="text-xs text-cyber-cyan hover:underline font-bold">LOAD</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Render History View
+        function renderScanHistory() {
+            const tbody = document.getElementById('scanHistoryList');
+            tbody.innerHTML = '';
+
+            localScanHistory.forEach(scan => {
+                const tr = document.createElement('tr');
+                tr.className = 'border-b border-slate-900 hover:bg-slate-900/20';
+
+                let riskClass = 'text-cyber-gray';
+                if (scan.risk === 'Critical') riskClass = 'text-cyber-danger font-bold';
+                else if (scan.risk === 'High') riskClass = 'text-cyber-warning font-bold';
+                else if (scan.risk === 'Medium') riskClass = 'text-cyber-blue font-bold';
+
+                tr.innerHTML = `
+                    <td class="py-3.5 px-4 text-xs text-slate-500 font-bold">${scan.id}</td>
+                    <td class="py-3.5 px-4 font-bold text-slate-200">${scan.target}</td>
+                    <td class="py-3.5 px-4 text-xs text-slate-400">${scan.date}</td>
+                    <td class="py-3.5 px-4 text-slate-400">${scan.checked} Ports</td>
+                    <td class="py-3.5 px-4 text-cyber-cyan font-bold">${scan.open} Open</td>
+                    <td class="py-3.5 px-4 text-xs"><span class="${riskClass}">${scan.risk}</span></td>
+                    <td class="py-3.5 px-4 text-right">
+                        <div class="flex justify-end gap-3">
+                            <button onclick="loadHistoricScan('${scan.id}')" class="text-xs text-cyber-cyan hover:underline font-bold">VIEW</button>
+                            <button onclick="deleteScan('${scan.id}')" class="text-xs text-cyber-danger hover:underline">DELETE</button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function deleteScan(id) {
+            localScanHistory = localScanHistory.filter(s => s.id !== id);
+            showToast('INFO', `Record ${id} deleted from local storage.`);
+            renderLandingPage();
+            renderScanHistory();
+        }
+
+        function clearScanHistory() {
+            localScanHistory = [];
+            showToast('WARNING', 'Diagnostic archive cleared.');
+            renderLandingPage();
+            renderScanHistory();
+        }
+
+        // Port selection range conditional wrapper input
+        function handlePortRangeChange() {
+            const select = document.getElementById('portRangeSelect');
+            const wrapper = document.getElementById('customPortRangeWrapper');
+            if (select.value === 'custom') {
+                wrapper.classList.remove('hidden');
+            } else {
+                wrapper.classList.add('hidden');
+            }
+        }
+
+        // Console logger
+        function writeConsole(message, type = 'info') {
+            const consoleBox = document.getElementById('liveTerminal');
+            const div = document.createElement('div');
+            
+            let color = 'text-emerald-400';
+            let prefix = '[INFO]';
+            
+            if (type === 'sys') {
+                color = 'text-cyber-cyan font-bold';
+                prefix = '[SYSTEM]';
+            } else if (type === 'scan') {
+                color = 'text-cyber-cyan';
+                prefix = '[SCAN]';
+            } else if (type === 'intel') {
+                color = 'text-cyber-purple font-semibold';
+                prefix = '[OSINT]';
+            } else if (type === 'vuln') {
+                color = 'text-cyber-danger font-bold';
+                prefix = '[ALERT]';
+            } else if (type === 'warning') {
+                color = 'text-cyber-warning font-semibold';
+                prefix = '[WARN]';
+            }
+
+            const timestamp = new Date().toLocaleTimeString();
+            div.className = `${color} leading-relaxed transition-all`;
+            div.innerHTML = `<span class="text-slate-500 font-normal mr-2">${timestamp}</span><span class="mr-1.5">${prefix}</span>${message}`;
+            
+            consoleBox.appendChild(div);
+            consoleBox.scrollTop = consoleBox.scrollHeight;
+        }
+
+        function clearConsole() {
+            document.getElementById('liveTerminal').innerHTML = '<div class="text-slate-500">[SYSTEM] Awaiting target deployment commands...</div>';
+        }
+
+        // Toast notifications utility
+        function showToast(type, message) {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = 'glass-card rounded-xl p-4 flex items-start gap-3 border-l-4 opacity-0 translate-y-2 transition-all duration-300 shadow-xl';
+            
+            let icon = 'info';
+            let border = 'border-l-cyber-cyan';
+            let text = 'text-cyber-cyan';
+            
+            if (type === 'SUCCESS') {
+                icon = 'check-circle-2';
+                border = 'border-l-cyber-success';
+                text = 'text-cyber-success';
+            } else if (type === 'WARNING') {
+                icon = 'alert-triangle';
+                border = 'border-l-cyber-warning';
+                text = 'text-cyber-warning';
+            } else if (type === 'DANGER') {
+                icon = 'shield-alert';
+                border = 'border-l-cyber-danger';
+                text = 'text-cyber-danger';
+            }
+            
+            toast.classList.add(border);
+
+            toast.innerHTML = `
+                <i data-lucide="${icon}" class="w-5 h-5 ${text} mt-0.5 shrink-0"></i>
+                <div class="flex-grow">
+                    <h4 class="text-xs font-bold ${text} uppercase tracking-wider">${type}</h4>
+                    <p class="text-xs text-slate-300 mt-1">${message}</p>
+                </div>
+                <button class="text-slate-500 hover:text-slate-300" onclick="this.parentElement.remove()">
+                    <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                </button>
+            `;
+            
+            container.appendChild(toast);
+            lucide.createIcons();
+            
+            // Trigger animation
+            setTimeout(() => {
+                toast.classList.remove('opacity-0', 'translate-y-2');
+            }, 10);
+
+            // Auto dismiss after 4 seconds
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-2');
+                setTimeout(() => { toast.remove(); }, 300);
+            }, 4000);
+        }
+
+        // Chart.js init
+        function initCharts() {
+            // Pie Distribution Chart
+            const pieCtx = document.getElementById('portDistributionChart').getContext('2d');
+            portChart = new Chart(pieCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Open', 'Filtered', 'Closed'],
+                    datasets: [{
+                        data: [0, 0, 100],
+                        backgroundColor: ['#10b981', '#f59e0b', '#334155'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { color: '#94a3b8', font: { family: 'Outfit', size: 10 } }
+                        }
+                    },
+                    cutout: '65%'
+                }
+            });
+
+            // Threat Gauge Chart
+            const gaugeCtx = document.getElementById('threatScoreChart').getContext('2d');
+            gaugeChart = new Chart(gaugeCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Risk', 'Buffer'],
+                    datasets: [{
+                        data: [0, 100],
+                        backgroundColor: ['#ef4444', '#1e293b'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    rotation: -90,
+                    circumference: 180,
+                    plugins: { legend: { display: false } },
+                    cutout: '75%'
+                }
+            });
+        }
+
+        // Update Scan Charts helper
+        function updateCharts(open, filtered, closed, score) {
+            // Pie
+            portChart.data.datasets[0].data = [open, filtered, closed];
+            portChart.update();
+
+            // Threat Score Gauge
+            gaugeChart.data.datasets[0].data = [score, 100 - score];
+            let gaugeColor = '#10b981'; // Green
+            let label = 'SECURE';
+            let textClass = 'text-cyber-success';
+            
+            if (score > 70) {
+                gaugeColor = '#ef4444'; // Red
+                label = 'CRITICAL RISK';
+                textClass = 'text-cyber-danger';
+            } else if (score > 30) {
+                gaugeColor = '#f59e0b'; // Yellow
+                label = 'VULNERABLE';
+                textClass = 'text-cyber-warning';
+            }
+            
+            gaugeChart.data.datasets[0].backgroundColor = [gaugeColor, '#1e293b'];
+            gaugeChart.update();
+
+            // Update badge text labels
+            const scoreBadge = document.getElementById('threatScoreBadge');
+            scoreBadge.innerText = `${score}/100`;
+            scoreBadge.className = `text-xs font-mono font-bold ${textClass}`;
+
+            const ratingLabel = document.getElementById('threatRatingLabel');
+            ratingLabel.innerText = label;
+            ratingLabel.className = `text-xs font-bold font-mono uppercase ${textClass}`;
+        }
+
+        // Toggle Scanning execution loop
+        function toggleScan() {
+            const target = document.getElementById('targetInput').value.trim();
+            
+            if (scanning) {
+                // Abort action
+                writeConsole('Audit aborted by administrative session.', 'warning');
+                showToast('WARNING', 'Security scan execution canceled.');
+                stopScanningState();
+                return;
+            }
+
+            if (!target) {
+                showToast('DANGER', 'Please enter a valid IP address or Domain.');
+                return;
+            }
+
+            currentTarget = target;
+            startScanningState();
+        }
+
+        function startScanningState() {
+            scanning = true;
+            paused = false;
+            progress = 0;
+            duration = 0.00;
+            currentResults = [];
+            
+            document.getElementById('scanBtnText').innerText = 'Abort';
+            document.getElementById('scanBtnIcon').setAttribute('data-lucide', 'square');
+            document.getElementById('scanBtn').classList.add('from-cyber-danger', 'to-cyber-danger');
+            document.getElementById('scanBtn').classList.remove('from-cyber-cyan', 'to-cyber-blue');
+            lucide.createIcons();
+
+            document.getElementById('scanStateBadge').innerText = 'ACTIVE';
+            document.getElementById('scanStateBadge').className = 'text-cyber-cyan font-bold';
+
+            // Reset UI components
+            clearConsole();
+            document.getElementById('resultsTableBody').innerHTML = '';
+            document.getElementById('openPortsCounter').innerText = '0 Open Ports';
+            
+            // Show scanning panels
+            document.getElementById('activeScanPanel').classList.remove('opacity-40');
+            document.getElementById('resultsWrapper').classList.remove('hidden');
+            document.getElementById('threatIntelCard').classList.add('hidden');
+            document.getElementById('reportActionsWrapper').classList.add('hidden');
+            
+            updateCharts(0, 0, 100, 0);
+
+            // Radar Speed adjustment based on scanSpeed select value
+            const speed = document.getElementById('scanSpeedSelect').value;
+            const radarSweep = document.getElementById('radarSweep');
+            radarSweep.className = 'absolute inset-0 rounded-full pointer-events-none opacity-40 bg-[conic-gradient(from_0deg,transparent_60%,#06b6d4_100%)]';
+            
+            let intervalTime = 120;
+            if (speed === 'fast') {
+                radarSweep.classList.add('radar-sweep-line-fast');
+                intervalTime = 60;
+            } else if (speed === 'deep') {
+                radarSweep.classList.add('radar-sweep-line-deep');
+                intervalTime = 300;
+            } else {
+                radarSweep.classList.add('radar-sweep-line');
+            }
+
+            document.getElementById('radarPulseDot').classList.remove('hidden');
+
+            writeConsole(`Starting TCP Connect Audit against ${currentTarget}`, 'sys');
+            writeConsole(`Deploying scanning threads: ${document.getElementById('threadCountSelect').value}`, 'info');
+            writeConsole('Resolving domain and checking host ping response...', 'info');
+
+            // Timer Interval
+            timerInterval = setInterval(() => {
+                duration += 0.05;
+                document.getElementById('scanDurationTimer').innerText = `${duration.toFixed(2)}s`;
+            }, 50);
+
+            // Simulation loop intervals
+            scanInterval = setInterval(() => {
+                progress += 1;
+                
+                // Update linear and circular metrics
+                document.getElementById('scanProgressText').innerText = `${progress}%`;
+                document.getElementById('linearProgressText').innerText = `${progress}%`;
+                document.getElementById('linearProgressBar').style.width = `${progress}%`;
+
+                // Dispatch log events based on milestones
+                if (progress === 10) {
+                    writeConsole(`Host resolved. Target: ${currentTarget}. Ping latency: 14ms (Host online).`, 'info');
+                } else if (progress === 20) {
+                    writeConsole('Beginning TCP network socket mapping range initialization.', 'info');
+                } else if (progress === 35) {
+                    // Find port 80
+                    findMockPort(80);
+                } else if (progress === 50) {
+                    // Find port 22
+                    findMockPort(22);
+                    writeConsole('Analyzing banner response payloads...', 'intel');
+                } else if (progress === 68) {
+                    // Check local threat indicators
+                    if (currentTarget.toLowerCase().includes('local') || currentTarget.includes('127.0.0.')) {
+                        findMockPort(3306);
+                        findMockPort(6379);
+                    } else {
+                        findMockPort(443);
+                    }
+                } else if (progress === 85) {
+                    writeConsole('Threat database cross-check in progress...', 'intel');
+                } else if (progress === 100) {
+                    completeScan();
+                }
+            }, intervalTime);
+        }
+
+        function stopScanningState() {
+            scanning = false;
+            clearInterval(scanInterval);
+            clearInterval(timerInterval);
+            
+            document.getElementById('scanBtnText').innerText = 'Scan';
+            document.getElementById('scanBtnIcon').setAttribute('data-lucide', 'play');
+            document.getElementById('scanBtn').classList.remove('from-cyber-danger', 'to-cyber-danger');
+            document.getElementById('scanBtn').classList.add('from-cyber-cyan', 'to-cyber-blue');
+            lucide.createIcons();
+
+            document.getElementById('scanStateBadge').innerText = 'ABORTED';
+            document.getElementById('scanStateBadge').className = 'text-cyber-danger font-bold';
+            document.getElementById('radarPulseDot').classList.add('hidden');
+        }
+
+        // Insert a port to findings
+        function findMockPort(portNum) {
+            const data = portDirectory[portNum] || { service: 'unknown', banner: 'None', risk: 'Low', state: 'Open' };
+            const resultsBody = document.getElementById('resultsTableBody');
+
+            // Prevent duplicates
+            if (currentResults.some(r => r.port === portNum)) return;
+
+            const tr = document.createElement('tr');
+            tr.className = 'hover:bg-slate-900/40 border-b border-slate-900/60 font-mono transition-colors';
+
+            let stateColor = 'text-cyber-success';
+            let riskBadge = 'bg-cyber-gray/10 text-cyber-gray border-cyber-gray/25';
+            
+            if (data.risk === 'Critical') riskBadge = 'bg-cyber-danger/10 text-cyber-danger border-cyber-danger/25 font-bold';
+            else if (data.risk === 'High') riskBadge = 'bg-cyber-warning/10 text-cyber-warning border-cyber-warning/25';
+            else if (data.risk === 'Medium') riskBadge = 'bg-cyber-blue/10 text-cyber-blue border-cyber-blue/25';
+
+            tr.innerHTML = `
+                <td class="py-2.5 px-4 font-bold text-slate-100">${portNum}</td>
+                <td class="py-2.5 px-4 text-slate-500">TCP</td>
+                <td class="py-2.5 px-4"><span class="${stateColor} flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-cyber-success animate-pulse"></span>Open</span></td>
+                <td class="py-2.5 px-4 font-bold text-slate-200">${data.service}</td>
+                <td class="py-2.5 px-4 text-xs text-slate-400 max-w-[200px] overflow-hidden text-ellipsis whitespace-nowrap" title="${data.banner}">${data.banner}</td>
+                <td class="py-2.5 px-4"><span class="px-2 py-0.5 rounded border text-[10px] ${riskBadge}">${data.risk}</span></td>
+                <td class="py-2.5 px-4 text-right">
+                    <button onclick="copyPortInfo(${portNum}, '${data.service}')" class="p-1 rounded bg-slate-900 hover:text-cyber-cyan border border-slate-800 transition-colors" title="Copy Info">
+                        <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+                    </button>
+                </td>
+            `;
+
+            resultsBody.appendChild(tr);
+            lucide.createIcons();
+
+            currentResults.push({
+                port: portNum,
+                protocol: 'TCP',
+                state: 'Open',
+                service: data.service,
+                banner: data.banner,
+                risk: data.risk
+            });
+
+            // Update log
+            writeConsole(`Connection success: Port ${portNum} (${data.service}) open. Banner response: ${data.banner}`, 'scan');
+            if (data.risk === 'Critical' || data.risk === 'High') {
+                writeConsole(`Vuln signature matched: Exposing ${data.service} (${portNum}) with risk profile: ${data.risk}`, 'vuln');
+            }
+
+            // Update Counter
+            document.getElementById('openPortsCounter').innerText = `${currentResults.length} Open Ports`;
+
+            // Dynamically recalculate scan stats charts
+            const totalChecked = Math.max(1024, Math.floor(progress * 10.2));
+            const closed = totalChecked - currentResults.length;
+            
+            // Threat Rating index logic
+            let totalThreat = 0;
+            currentResults.forEach(r => {
+                if (r.risk === 'Critical') totalThreat += 40;
+                else if (r.risk === 'High') totalThreat += 25;
+                else if (r.risk === 'Medium') totalThreat += 12;
+                else totalThreat += 5;
+            });
+            const threatScore = Math.min(100, totalThreat);
+
+            updateCharts(currentResults.length, 0, closed, threatScore);
+        }
+
+        // Copy Port Info
+        function copyPortInfo(port, service) {
+            navigator.clipboard.writeText(`Port: ${port} | Service: ${service} (TCP Open)`);
+            showToast('SUCCESS', `Port ${port} payload parameters saved to clipboard.`);
+        }
+
+        // Table search filters
+        function filterResultsTable() {
+            const query = document.getElementById('tableFilterInput').value.toLowerCase();
+            const stateFilter = document.getElementById('tableStateFilter').value;
+            const rows = document.querySelectorAll('#resultsTableBody tr');
+
+            rows.forEach(row => {
+                const portText = row.cells[0].textContent.toLowerCase();
+                const serviceText = row.cells[3].textContent.toLowerCase();
+                const textState = row.cells[2].textContent.toLowerCase();
+
+                const matchesQuery = portText.includes(query) || serviceText.includes(query);
+                const matchesState = stateFilter === 'all' || textState.includes(stateFilter);
+
+                if (matchesQuery && matchesState) {
+                    row.classList.remove('hidden');
+                } else {
+                    row.classList.add('hidden');
+                }
+            });
+        }
+
+        // Complete scanning
+        function completeScan() {
+            scanning = false;
+            clearInterval(scanInterval);
+            clearInterval(timerInterval);
+
+            // Revert scan button appearance
+            document.getElementById('scanBtnText').innerText = 'Scan';
+            document.getElementById('scanBtnIcon').setAttribute('data-lucide', 'play');
+            document.getElementById('scanBtn').classList.remove('from-cyber-danger', 'to-cyber-danger');
+            document.getElementById('scanBtn').classList.add('from-cyber-cyan', 'to-cyber-blue');
+            lucide.createIcons();
+
+            document.getElementById('scanStateBadge').innerText = 'COMPLETED';
+            document.getElementById('scanStateBadge').className = 'text-cyber-success font-bold';
+            document.getElementById('radarPulseDot').classList.add('hidden');
+
+            writeConsole(`Diagnostic complete. Total scan duration: ${duration.toFixed(2)} seconds.`, 'sys');
+            showToast('SUCCESS', `Port audit for ${currentTarget} finished successfully.`);
+
+            // Display OSINT threat profile details
+            populateThreatIntel();
+            document.getElementById('threatIntelCard').classList.remove('hidden');
+            document.getElementById('reportActionsWrapper').classList.remove('hidden');
+
+            // Save to Mock SQL DB History
+            saveScanToHistory();
+        }
+
+        // Populate threat info
+        function populateThreatIntel() {
+            const domain = currentTarget;
+            document.getElementById('threatIntelIsp').innerText = `ISP: Cloudflare Managed DNS`;
+            document.getElementById('intelOrg').innerText = 'Cloudflare Threat Center Cache';
+            document.getElementById('intelOs').innerText = 'Enterprise Linux RedHat / Debian';
+            
+            let threatRating = 'Low Risk Profile';
+            let threatClass = 'text-cyber-success border-cyber-success/20 bg-cyber-success/10';
+
+            const maxRisk = currentResults.some(r => r.risk === 'Critical') ? 'Critical' : 
+                            currentResults.some(r => r.risk === 'High') ? 'High' : 'Low';
+            
+            if (maxRisk === 'Critical') {
+                threatRating = 'Critical Vulnerability Exposed';
+                threatClass = 'text-cyber-danger border-cyber-danger/20 bg-cyber-danger/10 animate-pulse';
+            } else if (maxRisk === 'High') {
+                threatRating = 'High Risk Security Vectors';
+                threatClass = 'text-cyber-warning border-cyber-warning/20 bg-cyber-warning/10';
+            }
+
+            const riskBadge = document.getElementById('intelRisk');
+            riskBadge.innerText = threatRating;
+            riskBadge.className = `text-xs font-semibold px-2 py-0.5 rounded border mt-1.5 inline-block ${threatClass}`;
+            document.getElementById('intelHostnames').innerText = `mx-backup.${domain}, dev-ops.${domain}`;
+        }
+
+        // Save scan in memory
+        function saveScanToHistory() {
+            // Determine maximum threat profile rating
+            let maxRisk = 'Low';
+            if (currentResults.some(r => r.risk === 'Critical')) maxRisk = 'Critical';
+            else if (currentResults.some(r => r.risk === 'High')) maxRisk = 'High';
+            else if (currentResults.some(r => r.risk === 'Medium')) maxRisk = 'Medium';
+
+            const newScan = {
+                id: `S-${Math.floor(1000 + Math.random() * 9000)}`,
+                target: currentTarget,
+                date: new Date().toISOString().replace('T', ' ').substring(0, 16),
+                checked: 1024,
+                open: currentResults.length,
+                risk: maxRisk,
+                results: [...currentResults]
+            };
+
+            localScanHistory.unshift(newScan);
+            renderLandingPage();
+            renderScanHistory();
+        }
+
+        // Load an archived scan from History list
+        function loadHistoricScan(id) {
+            const scan = localScanHistory.find(s => s.id === id);
+            if (!scan) return;
+
+            currentTarget = scan.target;
+            currentResults = [...scan.results];
+
+            // Direct route to Dashboard
+            showView('dashboard');
+            
+            document.getElementById('targetInput').value = currentTarget;
+            document.getElementById('linearProgressBar').style.width = '100%';
+            document.getElementById('linearProgressText').innerText = '100% (ARCHIVED)';
+            document.getElementById('scanProgressText').innerText = '100%';
+            document.getElementById('scanDurationTimer').innerText = 'Archived';
+            document.getElementById('scanStateBadge').innerText = 'ARCHIVED';
+            document.getElementById('scanStateBadge').className = 'text-cyber-purple font-bold font-mono';
+
+            // Render ports table
+            const resultsBody = document.getElementById('resultsTableBody');
+            resultsBody.innerHTML = '';
+            
+            currentResults.forEach(data => {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-900/40 border-b border-slate-900/60 font-mono transition-colors';
+                
+                let stateColor = 'text-cyber-success';
+                let riskBadge = 'bg-cyber-gray/10 text-cyber-gray border-cyber-gray/25';
+                
+                if (data.risk === 'Critical') riskBadge = 'bg-cyber-danger/10 text-cyber-danger border-cyber-danger/25 font-bold';
+                else if (data.risk === 'High') riskBadge = 'bg-cyber-warning/10 text-cyber-warning border-cyber-warning/25';
+                else if (data.risk === 'Medium') riskBadge = 'bg-cyber-blue/10 text-cyber-blue border-cyber-blue/25';
+
+                tr.innerHTML = `
+                    <td class="py-2.5 px-4 font-bold text-slate-100">${data.port}</td>
+                    <td class="py-2.5 px-4 text-slate-500">TCP</td>
+                    <td class="py-2.5 px-4"><span class="${stateColor} flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-cyber-success"></span>Open</span></td>
+                    <td class="py-2.5 px-4 font-bold text-slate-200">${data.service}</td>
+                    <td class="py-2.5 px-4 text-xs text-slate-400 max-w-[200px] overflow-hidden text-ellipsis whitespace-nowrap" title="${data.banner}">${data.banner}</td>
+                    <td class="py-2.5 px-4"><span class="px-2 py-0.5 rounded border text-[10px] ${riskBadge}">${data.risk}</span></td>
+                    <td class="py-2.5 px-4 text-right">
+                        <button onclick="copyPortInfo(${data.port}, '${data.service}')" class="p-1 rounded bg-slate-900 hover:text-cyber-cyan border border-slate-800 transition-colors" title="Copy Info">
+                            <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+                        </button>
+                    </td>
+                `;
+                resultsBody.appendChild(tr);
+            });
+            lucide.createIcons();
+
+            document.getElementById('openPortsCounter').innerText = `${currentResults.length} Open Ports`;
+
+            // Compute Charts
+            let totalThreat = 0;
+            currentResults.forEach(r => {
+                if (r.risk === 'Critical') totalThreat += 40;
+                else if (r.risk === 'High') totalThreat += 25;
+                else if (r.risk === 'Medium') totalThreat += 12;
+                else totalThreat += 5;
+            });
+            const threatScore = Math.min(100, totalThreat);
+            updateCharts(currentResults.length, 0, 1024 - currentResults.length, threatScore);
+
+            // Open views
+            document.getElementById('resultsWrapper').classList.remove('hidden');
+            document.getElementById('activeScanPanel').classList.add('opacity-40');
+            document.getElementById('reportActionsWrapper').classList.remove('hidden');
+            
+            populateThreatIntel();
+            document.getElementById('threatIntelCard').classList.remove('hidden');
+
+            // Log loaded event
+            writeConsole(`Loaded archived security diagnostics record [${id}] for ${currentTarget}.`, 'sys');
+            showToast('SUCCESS', `Database archive report [${id}] loaded.`);
+        }
+
+        // Report Downloads trigger
+        function downloadReport(format) {
+            const reportData = {
+                title: "PortScanIt Security Vulnerability Audit",
+                target: currentTarget,
+                date: new Date().toISOString(),
+                success: true,
+                ports_discovered: currentResults.length,
+                findings: currentResults
+            };
+
+            let content = '';
+            let mime = 'application/json';
+            let filename = `portscanit_report_${currentTarget}.${format}`;
+
+            if (format === 'json') {
+                content = JSON.stringify(reportData, null, 2);
+            } else if (format === 'csv') {
+                mime = 'text/csv';
+                content = 'Port,Protocol,State,Service,Banner,RiskSeverity\n';
+                currentResults.forEach(r => {
+                    content += `${r.port},${r.protocol},${r.state},${r.service},"${r.banner.replace(/"/g, '""')}",${r.risk}\n`;
+                });
+            }
+
+            const blob = new Blob([content], { type: mime });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showToast('SUCCESS', `Report downloaded successfully in ${format.toUpperCase()} format.`);
+        }
+
+        function triggerPrintPdf() {
+            window.print();
+        }
+    </script>
+</body>
+</html>
