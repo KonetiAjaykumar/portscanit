@@ -157,7 +157,6 @@ export const Scanner: React.FC<ScannerProps> = ({
       }
 
       const scanObj = await res.json();
-      setActiveScanId(scanObj.id);
 
       startTimeRef.current = Date.now();
       timerRef.current = setInterval(() => {
@@ -167,7 +166,35 @@ export const Scanner: React.FC<ScannerProps> = ({
         }));
       }, 100);
 
-      connectSSEStream(scanObj.id);
+      if (scanObj.results) {
+        // Direct response mode (Vercel/Netlify Serverless)
+        if (timerRef.current) clearInterval(timerRef.current);
+        const elapsed = Date.now() - startTimeRef.current;
+        
+        const finalResults = scanObj.results;
+        setResults(finalResults);
+        
+        const openC = finalResults.filter((r: any) => r.state === 'OPEN').length;
+        const closedC = finalResults.filter((r: any) => r.state === 'CLOSED').length;
+        const filteredC = finalResults.filter((r: any) => r.state === 'FILTERED').length;
+
+        setProgress({
+          scannedCount: finalResults.length,
+          openCount: openC,
+          closedCount: closedC,
+          filteredCount: filteredC,
+          currentPort: 0,
+          elapsedTime: elapsed
+        });
+
+        onScanComplete({ scan: scanObj.scan, results: finalResults });
+        setIsScanning(false);
+        setActiveScanId(null);
+      } else {
+        // SSE Streaming mode (Local persistent Express server)
+        setActiveScanId(scanObj.id);
+        connectSSEStream(scanObj.id);
+      }
     } catch (e: any) {
       alert(e.message);
       setIsScanning(false);
