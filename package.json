@@ -9,6 +9,14 @@
     "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\""
   },
   "dependencies": {
-    "concurrently": "^8.2.2"
+    "concurrently": "^8.2.2",
+    "uuid": "^9.0.1",
+    "nodemailer": "^6.9.13"
+  },
+  "devDependencies": {
+    "@types/uuid": "^9.0.8",
+    "@types/node": "^20.11.24",
+    "@types/nodemailer": "^6.4.15",
+    "@vercel/node": "^3.0.0"
   }
 }
