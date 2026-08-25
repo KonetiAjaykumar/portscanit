@@ -81,12 +81,12 @@ export const Settings: React.FC<SettingsProps> = ({ apiOnline, theme }) => {
   };
 
   return (
-    <div className="flex-1 p-8 space-y-8 overflow-y-auto h-full">
+    <div className="flex-1 p-4 md:p-8 space-y-8 overflow-y-auto h-full">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-[#1e293b] pb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#1e293b] pb-6">
         <div>
-          <h2 className="text-2xl font-bold text-slate-100 tracking-tight font-mono">SETTINGS & DIAGNOSTICS</h2>
-          <p className="text-slate-400 text-sm mt-0.5 font-sans">Tune port scanner concurrency limits, network socket timeouts, and check engine health.</p>
+          <h2 className="text-xl md:text-2xl font-bold text-slate-100 tracking-tight font-mono">SETTINGS & DIAGNOSTICS</h2>
+          <p className="text-slate-400 text-xs md:text-sm mt-0.5 font-sans">Tune port scanner concurrency limits, network socket timeouts, and check engine health.</p>
         </div>
       </div>
 
