@@ -39,9 +39,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <div>
         {/* Brand Header */}
         <div className="h-16 flex items-center gap-3 px-6 border-b border-[#1e293b] bg-[#0b132b]/40">
-          <div className="p-2 bg-[#06b6d4]/10 rounded-lg border border-[#06b6d4]/30 animate-pulse">
-            <ShieldAlert className="w-5 h-5 text-[#06b6d4]" />
-          </div>
+          <img src="/logo.jpg" alt="PortScanIT Logo" className="w-9 h-9 rounded-lg border border-slate-700 object-cover shrink-0" />
           <div>
             <h1 className="font-bold text-lg tracking-wider text-slate-100 uppercase">
               PortScan<span className="text-[#06b6d4]">IT</span>
