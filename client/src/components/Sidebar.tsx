@@ -38,8 +38,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
     <aside className="w-64 bg-[#0a0f1d] border-r border-[#1e293b] flex flex-col justify-between shrink-0 h-screen sticky top-0">
       <div>
         {/* Brand Header */}
-        <div className="h-16 flex items-center gap-3 px-6 border-b border-[#1e293b] bg-[#0b132b]/40">
-          <img src="/logo.jpg" alt="PortScanIT Logo" className="w-9 h-9 rounded-lg border border-slate-700 object-cover shrink-0" />
+        <div className="h-20 flex items-center gap-3 px-6 border-b border-[#1e293b] bg-[#0b132b]/40">
+          <img src="/logo.jpg" alt="PortScanIT Logo" className="w-12 h-12 rounded-lg border border-slate-700 object-cover shrink-0" />
           <div>
             <h1 className="font-bold text-lg tracking-wider text-slate-100 uppercase">
               PortScan<span className="text-[#06b6d4]">IT</span>
