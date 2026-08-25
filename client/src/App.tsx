@@ -8,7 +8,8 @@ import {
   ShieldCheck, 
   Wifi,
   WifiOff,
-  Radar
+  Radar,
+  Menu
 } from 'lucide-react';
 
 export interface ScanSummary {
@@ -49,6 +50,7 @@ export default function App() {
   const [isScanning, setIsScanning] = useState(false);
   const [scanTarget, setScanTarget] = useState('');
   const [apiOnline, setApiOnline] = useState(true);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   // Lifted Scan History state (ephemeral, stored in browser RAM)
   const [scansHistory, setScansHistory] = useState<ScanRecord[]>([]);
@@ -128,44 +130,60 @@ export default function App() {
   return (
     <div className="flex bg-[#080c14] min-h-screen text-slate-100 font-sans selection:bg-[#06b6d4] selection:text-[#080c14] overflow-hidden">
       {/* Sidebar Navigation */}
-      <Sidebar currentPage={currentPage} setCurrentPage={setCurrentPage} isScanning={isScanning} />
+      <Sidebar 
+        currentPage={currentPage} 
+        setCurrentPage={setCurrentPage} 
+        isScanning={isScanning} 
+        mobileOpen={mobileSidebarOpen}
+        onClose={() => setMobileSidebarOpen(false)}
+      />
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col h-screen overflow-hidden">
         {/* Top Status Header */}
-        <header className="h-16 border-b border-[#1e293b] bg-[#090e1a]/85 backdrop-blur-md px-8 flex items-center justify-between shrink-0">
+        <header className="h-16 border-b border-[#1e293b] bg-[#090e1a]/85 backdrop-blur-md px-4 md:px-8 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
-            <span className="text-[10px] tracking-widest font-mono uppercase font-bold text-slate-500">CONSOLE</span>
-            <div className="h-4 w-[1px] bg-[#1e293b]"></div>
+            <button
+              onClick={() => setMobileSidebarOpen(true)}
+              className="md:hidden p-1.5 text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 rounded-lg transition-all cursor-pointer"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+            <span className="text-[10px] tracking-widest font-mono uppercase font-bold text-slate-500 hidden sm:inline-block">CONSOLE</span>
+            <div className="h-4 w-[1px] bg-[#1e293b] hidden sm:block"></div>
             <h2 className="text-sm font-semibold font-mono tracking-wide text-slate-300 capitalize">
               {currentPage.replace('-', ' ')}
             </h2>
           </div>
 
-          <div className="flex items-center gap-5 text-xs font-mono">
+          <div className="flex items-center gap-3 md:gap-5 text-xs font-mono">
             {/* Active Scanning Status Banner */}
             {isScanning ? (
-              <div className="flex items-center gap-2 px-3 py-1 bg-red-500/10 border border-red-500/20 text-red-500 rounded-full animate-pulse">
-                <Radar className="w-3.5 h-3.5 animate-spin" />
-                <span>SCAN_RUNNING: {scanTarget}</span>
+              <div className="flex items-center gap-1.5 px-2 py-0.5 md:px-3 md:py-1 bg-red-500/10 border border-red-500/20 text-red-500 rounded-full animate-pulse text-[10px] md:text-xs">
+                <Radar className="w-3 h-3 md:w-3.5 md:h-3.5 animate-spin" />
+                <span className="hidden sm:inline">SCAN_RUNNING: {scanTarget}</span>
+                <span className="sm:hidden">SCANNING</span>
               </div>
             ) : (
-              <div className="flex items-center gap-2 px-3 py-1 bg-slate-800/40 border border-slate-700/20 text-slate-400 rounded-full">
-                <ShieldCheck className="w-3.5 h-3.5" />
-                <span>SCANNER_STANDBY</span>
+              <div className="flex items-center gap-1.5 px-2 py-0.5 md:px-3 md:py-1 bg-slate-800/40 border border-slate-700/20 text-slate-400 rounded-full text-[10px] md:text-xs">
+                <ShieldCheck className="w-3 h-3 md:w-3.5 md:h-3.5" />
+                <span className="hidden sm:inline">SCANNER_STANDBY</span>
+                <span className="sm:hidden">STANDBY</span>
               </div>
             )}
 
             {/* API Server status indicator */}
             {apiOnline ? (
-              <div className="flex items-center gap-1.5 text-emerald-400 font-bold bg-emerald-500/5 px-2.5 py-1 rounded-full border border-emerald-500/10">
-                <Wifi className="w-3.5 h-3.5 text-emerald-400" />
-                <span>API_CONNECTED</span>
+              <div className="flex items-center gap-1.5 text-emerald-400 font-bold bg-emerald-500/5 px-2 py-0.5 md:px-2.5 md:py-1 rounded-full border border-emerald-500/10 text-[10px] md:text-xs">
+                <Wifi className="w-3 h-3 md:w-3.5 md:h-3.5 text-emerald-400" />
+                <span className="hidden sm:inline">API_CONNECTED</span>
+                <span className="sm:hidden">ONLINE</span>
               </div>
             ) : (
-              <div className="flex items-center gap-1.5 text-red-500 font-bold bg-red-500/5 px-2.5 py-1 rounded-full border border-red-500/10">
-                <WifiOff className="w-3.5 h-3.5 text-red-500" />
-                <span>API_OFFLINE</span>
+              <div className="flex items-center gap-1.5 text-red-500 font-bold bg-red-500/5 px-2 py-0.5 md:px-2.5 md:py-1 rounded-full border border-red-500/10 text-[10px] md:text-xs">
+                <WifiOff className="w-3 h-3 md:w-3.5 md:h-3.5 text-red-500" />
+                <span className="hidden sm:inline">API_OFFLINE</span>
+                <span className="sm:hidden">OFFLINE</span>
               </div>
             )}
           </div>
