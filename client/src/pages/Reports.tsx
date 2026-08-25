@@ -332,12 +332,12 @@ export const Reports: React.FC<ReportsProps> = ({ scansHistory, theme }) => {
   };
 
   return (
-    <div className="flex-1 p-8 space-y-8 overflow-y-auto h-full">
+    <div className="flex-1 p-4 md:p-8 space-y-8 overflow-y-auto h-full">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-[#1e293b] pb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#1e293b] pb-6">
         <div>
-          <h2 className="text-2xl font-bold text-slate-100 tracking-tight font-mono">COMPLIANCE REPORTS</h2>
-          <p className="text-slate-400 text-sm mt-0.5">Generate, customize, and export executive PDF reports or raw CSV audit logs.</p>
+          <h2 className="text-xl md:text-2xl font-bold text-slate-100 tracking-tight font-mono">COMPLIANCE REPORTS</h2>
+          <p className="text-slate-400 text-xs md:text-sm mt-0.5">Generate, customize, and export executive PDF reports or raw CSV audit logs.</p>
         </div>
       </div>
 
@@ -421,20 +421,20 @@ export const Reports: React.FC<ReportsProps> = ({ scansHistory, theme }) => {
                 <h4 className="font-bold text-slate-300 text-xs font-mono uppercase">DISPATCH REPORT TO EMAIL</h4>
               </div>
 
-              <div className="flex gap-3">
+              <div className="flex flex-col sm:flex-row gap-3">
                 <input
                   type="email"
                   placeholder="recipient@gmail.com"
                   value={email}
                   disabled={emailing || !selectedScan}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="flex-1 bg-[#080c14] border border-[#1e293b] focus:border-[#06b6d4] rounded-lg px-4 py-2.5 text-slate-300 font-mono text-sm outline-none transition-all"
+                  className="flex-1 bg-[#080c14] border border-[#1e293b] focus:border-[#06b6d4] rounded-lg px-4 py-2.5 text-slate-300 font-mono text-sm outline-none transition-all w-full"
                 />
                 <button
                   type="button"
                   onClick={handleEmailReport}
                   disabled={emailing || !email.trim() || !selectedScan}
-                  className="px-5 py-2.5 bg-[#06b6d4] hover:bg-[#06b6d4]/90 disabled:bg-slate-800 disabled:text-slate-600 text-[#080c14] rounded-lg font-bold text-xs font-mono tracking-wider transition-all cursor-pointer flex items-center gap-1.5"
+                  className="px-5 py-2.5 bg-[#06b6d4] hover:bg-[#06b6d4]/90 disabled:bg-slate-800 disabled:text-slate-600 text-[#080c14] rounded-lg font-bold text-xs font-mono tracking-wider transition-all cursor-pointer flex items-center justify-center gap-1.5 w-full sm:w-auto"
                 >
                   {emailing ? 'SENDING...' : 'SEND EMAIL'}
                 </button>
