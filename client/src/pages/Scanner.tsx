@@ -369,16 +369,16 @@ export const Scanner: React.FC<ScannerProps> = ({
   return (
     <div className="flex-1 flex overflow-hidden h-full relative">
       {/* Scrollable Main Area */}
-      <div className="flex-1 p-8 overflow-y-auto space-y-6 flex flex-col justify-between">
+      <div className="flex-1 p-4 md:p-8 overflow-y-auto space-y-6 flex flex-col justify-between">
         <div className="space-y-6">
           
           {/* Top Panel: Control Center Header */}
-          <div className="flex items-center justify-between border-b border-[#1e293b] pb-5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#1e293b] pb-5">
             <div>
-              <h2 className="text-2xl font-bold text-slate-100 tracking-tight font-mono">SOC CONSOLE & SCANNER</h2>
-              <p className="text-slate-400 text-sm mt-0.5">Start sweeps on targets and analyze security risk distribution in a single dashboard.</p>
+              <h2 className="text-xl md:text-2xl font-bold text-slate-100 tracking-tight font-mono">SOC CONSOLE & SCANNER</h2>
+              <p className="text-slate-400 text-xs md:text-sm mt-0.5">Start sweeps on targets and analyze security risk distribution in a single dashboard.</p>
             </div>
-            <div className="text-xs text-yellow-500 font-mono flex items-center gap-1 bg-yellow-500/5 px-3 py-1.5 rounded-full border border-yellow-500/10">
+            <div className="text-[10px] md:text-xs text-yellow-500 font-mono flex items-center gap-1 bg-yellow-500/5 px-3 py-1.5 rounded-full border border-yellow-500/10 self-start sm:self-auto">
               <ShieldAlert className="w-3.5 h-3.5" />
               AUTHORIZED TARGETS ONLY
             </div>
@@ -690,20 +690,20 @@ export const Scanner: React.FC<ScannerProps> = ({
               </div>
 
               <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse text-xs font-mono">
+                <table className="w-full text-left border-collapse text-xs font-mono min-w-[500px] md:min-w-0">
                   <thead>
                     <tr className="border-b border-[#1e293b] bg-slate-900/40 text-slate-400 uppercase text-[10px] tracking-wider">
-                      <th onClick={() => triggerSort('port')} className="px-5 py-3 cursor-pointer hover:text-slate-200 transition-colors">
+                      <th onClick={() => triggerSort('port')} className="px-3 md:px-5 py-3 cursor-pointer hover:text-slate-200 transition-colors">
                         Port {sortBy === 'port' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
                       </th>
-                      <th className="px-5 py-3">Protocol</th>
+                      <th className="px-5 py-3 hidden sm:table-cell">Protocol</th>
                       <th className="px-5 py-3">State</th>
                       <th className="px-5 py-3">Service</th>
-                      <th className="px-5 py-3">Banner Grabbed</th>
-                      <th onClick={() => triggerSort('risk')} className="px-5 py-3 cursor-pointer hover:text-slate-200 transition-colors">
-                        Risk Rating {sortBy === 'risk' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
+                      <th className="px-5 py-3 hidden md:table-cell">Banner Grabbed</th>
+                      <th onClick={() => triggerSort('risk')} className="px-3 md:px-5 py-3 cursor-pointer hover:text-slate-200 transition-colors">
+                        Risk {sortBy === 'risk' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
                       </th>
-                      <th className="px-5 py-3 text-right">Inspect</th>
+                      <th className="px-3 md:px-5 py-3 text-right">Inspect</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#1e293b]/60">
@@ -713,8 +713,8 @@ export const Scanner: React.FC<ScannerProps> = ({
                         onClick={() => setSelectedResult(item)}
                         className="hover:bg-slate-800/20 cursor-pointer transition-colors group"
                       >
-                        <td className="px-5 py-3.5 text-slate-200 font-bold">{item.port}</td>
-                        <td className="px-5 py-3.5 text-slate-400">{item.protocol || 'TCP'}</td>
+                        <td className="px-3 md:px-5 py-3.5 text-slate-200 font-bold">{item.port}</td>
+                        <td className="px-5 py-3.5 text-slate-400 hidden sm:table-cell">{item.protocol || 'TCP'}</td>
                         <td className="px-5 py-3.5">
                           <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
                             item.state === 'OPEN' ? 'text-emerald-400 bg-emerald-500/5 border border-emerald-500/20' :
@@ -725,13 +725,13 @@ export const Scanner: React.FC<ScannerProps> = ({
                           </span>
                         </td>
                         <td className="px-5 py-3.5 text-slate-300 font-semibold">{item.service}</td>
-                        <td className="px-5 py-3.5 text-slate-500 truncate max-w-xs">{item.banner || 'Not detected'}</td>
-                        <td className="px-5 py-3.5">
+                        <td className="px-5 py-3.5 text-slate-500 truncate max-w-xs hidden md:table-cell">{item.banner || 'Not detected'}</td>
+                        <td className="px-3 md:px-5 py-3.5">
                           <span className={getRiskColor(item.risk_level)}>
                             {item.risk_level || 'Low'}
                           </span>
                         </td>
-                        <td className="px-5 py-3.5 text-right">
+                        <td className="px-3 md:px-5 py-3.5 text-right">
                           <ChevronRight className="w-4 h-4 text-slate-500 group-hover:text-[#06b6d4] transition-colors inline-block" />
                         </td>
                       </tr>
@@ -746,16 +746,22 @@ export const Scanner: React.FC<ScannerProps> = ({
 
       {/* Port Details Drawer Panel */}
       {selectedResult && (
-        <div className="w-96 bg-[#0a0f1d] border-l border-[#1e293b] flex flex-col shrink-0 h-full sticky top-0 animate-in slide-in-from-right duration-200 z-10">
-          <div className="h-16 flex items-center justify-between px-6 border-b border-[#1e293b] bg-[#0b132b]/40">
-            <h3 className="font-bold text-slate-200 font-mono tracking-wide">PORT ADVISORY</h3>
-            <button 
-              onClick={() => setSelectedResult(null)}
-              className="p-1 text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 rounded-lg transition-all"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
+        <>
+          {/* Mobile Details Overlay Backdrop */}
+          <div 
+            onClick={() => setSelectedResult(null)}
+            className="fixed inset-0 bg-[#040810]/70 backdrop-blur-sm z-40 md:hidden animate-in fade-in duration-200"
+          />
+          <div className="w-full md:w-96 bg-[#0a0f1d] border-l border-[#1e293b] flex flex-col shrink-0 h-full fixed md:sticky top-0 right-0 z-50 animate-in slide-in-from-right duration-200">
+            <div className="h-16 flex items-center justify-between px-6 border-b border-[#1e293b] bg-[#0b132b]/40">
+              <h3 className="font-bold text-slate-200 font-mono tracking-wide">PORT ADVISORY</h3>
+              <button 
+                onClick={() => setSelectedResult(null)}
+                className="p-1.5 text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 rounded-lg transition-all cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
 
           <div className="p-6 space-y-6 overflow-y-auto flex-1">
             <div className="space-y-1.5 border-b border-[#1e293b] pb-4">
@@ -840,7 +846,8 @@ export const Scanner: React.FC<ScannerProps> = ({
             </div>
           </div>
         </div>
-      )}
+      </>
+    )}
     </div>
   );
 };
